@@ -1,0 +1,172 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: resumebucket-k8s
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: resumebucket-configmap
+  namespace: resumebucket-k8s
+data:
+  elasticseach-url: elasticsearch.elk-stack:9200
+  security-jwt-clientid: ResumeBucketClient
+  security-jwt-accesstokenvaliditityseconds: "43200"
+  security-jwt-authorizedgranttypes: password,authorization_code,refresh_token,client_credentials
+  security-jwt-refreshtokenvalidityseconds: "2592000"
+  redis-host: redis-stack-service.redis-stack-k8s
+  redis-port: "6379"
+  redis-database: "0"
+  redis-timeout: "60000"
+  redis-pool-max-active: "8"
+  redis-pool-max-idle: "8"
+  redis-pool-min-idle: "0"
+  admin-user-email: admin@resumebucket.com
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: resumebucket-secret
+  namespace: resumebucket-k8s
+type: Opaque
+stringData:
+  security-jwt-clientsecret: secret
+  security-jwt-signingkey: "123"
+  redis-password: root
+  admin-user-password: admin123
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: resumebucket-service
+  namespace: resumebucket-k8s
+  labels:
+     app: resumebucket
+spec:
+  selector:
+    app: resumebucket
+  type: LoadBalancer
+  ports:
+    - port: 8080
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resumebucket-deployment
+  namespace: resumebucket-k8s
+  labels:
+    app: resumebucket
+spec:
+  replicas: 1
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: resumebucket
+  template:
+    metadata:
+      labels:
+        app: resumebucket
+    spec:
+      containers:
+      - name: resumebucket
+        image: eftmk/resumebucket:latest
+        imagePullPolicy: Never
+        ports:
+          - containerPort: 8080
+        resources:
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+          requests:
+            memory: "256Mi"
+            cpu: "500m"
+        env:
+          - name: CONFIG_ELASTICSEARCH_URL
+            valueFrom:
+              configMapKeyRef:
+                name: resumebucket-configmap
+                key: elasticseach-url
+          - name: CONFIG_SECURITY_JWT_CLIENTID
+            valueFrom:
+              configMapKeyRef:
+                name: resumebucket-configmap
+                key: security-jwt-clientid
+          - name: CONFIG_SECURITY_JWT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: resumebucket-secret
+                key: security-jwt-clientsecret
+          - name: CONFIG_SECURITY_JWT_SIGNINGKEY
+            valueFrom:
+              secretKeyRef:
+                name: resumebucket-secret
+                key: security-jwt-signingkey
+          - name: CONFIG_SECURITY_JWT_ACCESSTOKEN_VALIDITYSECONDS
+            valueFrom:
+              configMapKeyRef:
+                name: resumebucket-configmap
+                key: security-jwt-accesstokenvaliditityseconds
+          - name: CONFIG_SECURITY_JWT_AUTHORIZED_GRANTTYPES
+            valueFrom:
+              configMapKeyRef:
+                name: resumebucket-configmap
+                key: security-jwt-authorizedgranttypes
+          - name: CONFIG_SECURITY_JWT_REFERSHTOKEN_VALIDITYSECONDS
+            valueFrom:
+              configMapKeyRef:
+                name: resumebucket-configmap
+                key: security-jwt-refreshtokenvalidityseconds
+          - name: CONFIG_REDIS_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: resumebucket-configmap
+                key: redis-host
+          - name: CONFIG_REDIS_PORT
+            valueFrom:
+              configMapKeyRef:
+                name: resumebucket-configmap
+                key: redis-port
+          - name: CONFIG_REDIS_DATABASE
+            valueFrom:
+              configMapKeyRef:
+                name: resumebucket-configmap
+                key: redis-database
+          - name: CONFIG_REDIS_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: resumebucket-secret
+                key: redis-password
+          - name: CONFIG_REDIS_TIMEOUT
+            valueFrom:
+              configMapKeyRef:
+                name: resumebucket-configmap
+                key: redis-timeout
+          - name: CONFIG_REDIS_POOL_MAX_ACTIVE
+            valueFrom:
+              configMapKeyRef:
+                name: resumebucket-configmap
+                key: redis-pool-max-active
+          - name: CONFIG_REDIS_POOL_MAX_IDLE
+            valueFrom:
+              configMapKeyRef:
+                name: resumebucket-configmap
+                key: redis-pool-max-idle
+          - name: CONFIG_REDIS_POOL_MIN_IDLE
+            valueFrom:
+              configMapKeyRef:
+                name: resumebucket-configmap
+                key: redis-pool-min-idle
+          - name: CONFIG_ADMIN_USER_EMAIL
+            valueFrom:
+              configMapKeyRef:
+                name: resumebucket-configmap
+                key: admin-user-email
+          - name: CONFIG_ADMIN_USER_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: resumebucket-secret
+                key: admin-user-password

@@ -1,0 +1,91 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: redis-stack-k8s
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: redis-stack-pv
+  namespace: redis-stack-k8s
+spec:
+  capacity:
+    storage: 50Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Recycle
+  hostPath:
+   path: /data/redis
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-stack-pvc
+  namespace: redis-stack-k8s
+spec:
+  storageClassName: ""
+  resources:
+    requests:
+       storage: 50Gi
+  volumeMode: Filesystem
+  volumeName: redis-stack-pv
+  accessModes:
+    - ReadWriteOnce
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: redis-stack-k8s
+  labels:
+    app: redis-stack-deployment
+  name: redis-stack-service
+spec:
+  ports:
+  - port: 6379
+    targetPort: 6379
+    protocol: TCP
+    nodePort: 32666
+  selector:
+    app: redis-stack-deployment
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: redis-stack-k8s
+  labels:
+    app: redis-stack-deployment
+  name: redis-stack-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-stack-deployment
+  template:
+    metadata:
+      labels:
+        app: redis-stack-deployment
+    spec:
+      containers:
+      - image: redis/redis-stack:latest
+        name: redis
+        command: ["redis-server"]
+        args: ["--replica-announce-ip svc-redis-instance-1", "--requirepass root", 
+        "--loadmodule /opt/redis-stack/lib/redisearch.so" , "--loadmodule /opt/redis-stack/lib/rejson.so",
+        "--loadmodule /opt/redis-stack/lib/redistimeseries.so", "--loadmodule /opt/redis-stack/lib/redisbloom.so",
+        "--save 10 1", "--appendonly yes", "--dir ./data"]
+        volumeMounts:
+        - name: "redis-stack-pvc"
+          mountPath: "/data"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "500m"
+          limits:
+            memory: "512Mi"
+            cpu: "1000m"           
+      volumes:
+      - name: "redis-stack-pvc"
+        persistentVolumeClaim:
+          claimName: "redis-stack-pvc"
