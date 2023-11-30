@@ -46,7 +46,7 @@ Java11, Spring Boot(web, test, data-redis, security, log4j2, cache, validation, 
   >kubectl apply -f redis-stack.yaml
    
 - Build Image
-  > docker build -t bookworm:latest -f /eclipse-workspace/BookWorm/src/main/resources/Dockerfile .
+  > docker build -t resumebucket:latest -f /eclipse-workspace/ResumeBucket/src/main/resources/Dockerfile .
   
   > eval $(minikube docker-env)
   
