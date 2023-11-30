@@ -31,3 +31,30 @@ Java11, Spring Boot(web, test, data-redis, security, log4j2, cache, validation, 
   - searchWhereTheyLive
   - searchWhereTheyStudy
 
+# Deployment
+
+- Install minikube
+  - https://minikube.sigs.k8s.io/docs/start/
+
+- For loadbanacer run command below
+  > minikube tunnel
+  
+- Deploy Elastic-Stack
+  >kubectl apply -f elastic-stack.yaml
+
+- Deploy Redis-Stack
+  >kubectl apply -f redis-stack.yaml
+   
+- Build Image
+  > docker build -t bookworm:latest -f /eclipse-workspace/BookWorm/src/main/resources/Dockerfile .
+  
+  > eval $(minikube docker-env)
+  
+- Deploy Applications
+  > kubectl apply -f resumebucket.yaml
+  
+- Kubernetes Dashboard
+  > minikube dasboard
+  
+- Prometheus&Grafana
+  > kubectl create namespace monitoring
