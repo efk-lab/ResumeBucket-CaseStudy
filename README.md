@@ -58,3 +58,5 @@ Java11, Spring Boot(web, test, data-redis, security, log4j2, cache, validation, 
   
 - Prometheus&Grafana
   > kubectl create namespace monitoring
+  > helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+  > helm install k8spromethuesstack --namespace monitoring prometheus-community/kube-prometheus-stack
